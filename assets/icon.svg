@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 108 108" width="120" height="120">
+  <!-- Black background with rounded corners -->
+  <rect width="108" height="108" fill="#000000" rx="22"/>
+
+  <!-- Icon group scaled 0.65× around center pivot (54,54) -->
+  <g transform="translate(54,54) scale(0.65) translate(-54,-54)">
+
+    <!-- TV screen — rounded rect, stroke only -->
+    <path d="M 20,28 L 88,28 Q 92,28 92,32 L 92,68 Q 92,72 88,72 L 20,72 Q 16,72 16,68 L 16,32 Q 16,28 20,28 Z"
+          fill="none" stroke="#FFFFFF" stroke-width="5"/>
+
+    <!-- TV stand — vertical stem -->
+    <path d="M 54,72 L 54,82"
+          fill="none" stroke="#FFFFFF" stroke-width="5" stroke-linecap="round"/>
+
+    <!-- TV stand — horizontal foot -->
+    <path d="M 38,82 L 70,82"
+          fill="none" stroke="#FFFFFF" stroke-width="5" stroke-linecap="round"/>
+
+    <!-- Left chain-link ring -->
+    <path d="M 46,44 L 38,44 Q 32,44 32,50 Q 32,56 38,56 L 46,56"
+          fill="none" stroke="#FFFFFF" stroke-width="4.5" stroke-linecap="round"/>
+
+    <!-- Right chain-link ring -->
+    <path d="M 62,44 L 70,44 Q 76,44 76,50 Q 76,56 70,56 L 62,56"
+          fill="none" stroke="#FFFFFF" stroke-width="4.5" stroke-linecap="round"/>
+
+    <!-- Connecting bar between links -->
+    <path d="M 44,50 L 64,50"
+          fill="none" stroke="#FFFFFF" stroke-width="4.5" stroke-linecap="round"/>
+
+  </g>
+</svg>
