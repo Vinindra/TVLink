@@ -3,8 +3,8 @@
   <h1>TVLink</h1>
   <p>Manage your Android TV wirelessly from your phone — no USB, no root.</p>
 
-  <a href="https://github.com/YOUR_USERNAME/TVLink/releases/latest">
-    <img src="https://img.shields.io/github/v/release/YOUR_USERNAME/TVLink?label=Download&logo=android&color=4CAF50" alt="Download latest release"/>
+  <a href="https://github.com/Vinindra/TVLink/releases/latest">
+    <img src="https://img.shields.io/github/v/release/Vinindra/TVLink?label=Download&logo=android&color=4CAF50" alt="Download latest release"/>
   </a>
   <img src="https://img.shields.io/badge/Android-8.0%2B-blue?logo=android" alt="Android 8.0+"/>
   <img src="https://img.shields.io/badge/License-MIT-purple" alt="MIT License"/>
@@ -14,7 +14,7 @@
 
 ## Download
 
-Grab the latest APK from the [**Releases**](https://github.com/YOUR_USERNAME/TVLink/releases/latest) page and install it directly on your phone.
+Grab the latest APK from the [**Releases**](https://github.com/Vinindra/TVLink/releases/latest) page and install it directly on your phone.
 
 > **Note:** You'll need to allow installation from unknown sources.
 > Go to **Settings → Security → Install unknown apps** and enable it for your browser or file manager.
