@@ -21,6 +21,18 @@ Grab the latest APK from the [**Releases**](https://github.com/Vinindra/TVLink/r
 
 ---
 
+## Screenshots
+
+<div align="center">
+  <img src="assets/screenshots/connect.png" alt="Connect screen" width="30%"/>
+  &nbsp;&nbsp;
+  <img src="assets/screenshots/apps.png" alt="Apps screen" width="30%"/>
+  &nbsp;&nbsp;
+  <img src="assets/screenshots/terminal.png" alt="Terminal screen" width="30%"/>
+</div>
+
+---
+
 ## Features
 
 | | |
