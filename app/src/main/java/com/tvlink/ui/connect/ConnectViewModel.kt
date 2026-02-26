@@ -777,7 +777,11 @@ class ConnectViewModel @Inject constructor(
     fun launchScreensaver() {
         viewModelScope.launch {
             val device = _uiState.value.connectedDevice ?: return@launch
-            adbRepository.shell(device, "am start -a android.intent.action.DREAMING")
+            // Try service call first (most reliable), then cmd dreams
+            val result = adbRepository.shell(device, "service call dreams 1")
+            if (result.isFailure || result.getOrNull()?.isError == true) {
+                adbRepository.shell(device, "cmd dreams start-dreaming")
+            }
         }
     }
 

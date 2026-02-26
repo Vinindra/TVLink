@@ -86,55 +86,56 @@ fun RemoteScreen(
             SubScreenTopBar(title = "Remote Control", onBack = onBack)
         },
         bottomBar = {
-            // ── Text input bar ───────────────────────────────────────────
+            // ── Modernized Text Input Bar ────────────────────────────────
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(MaterialTheme.colorScheme.surfaceContainer)
-                    .padding(horizontal = 16.dp, vertical = 10.dp)
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
                     .imePadding()
                     .navigationBarsPadding(),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
+                // Keyboard Sync Toggle
                 Box(
                     modifier = Modifier
-                        .width(124.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(if (isTextMode) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHighest)
+                        .size(44.dp)
+                        .clip(CircleShape)
+                        .background(if (isTextMode) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh)
                         .border(
                             1.dp,
-                            if (isTextMode) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHighest,
-                            RoundedCornerShape(12.dp)
+                            if (isTextMode) MaterialTheme.colorScheme.primary.copy(alpha = 0.5f) else MaterialTheme.colorScheme.surfaceContainerHighest,
+                            CircleShape
                         )
-                        .clickable { isTextMode = !isTextMode }
-                        .padding(horizontal = 10.dp, vertical = 8.dp)
+                        .clickable { isTextMode = !isTextMode },
+                    contentAlignment = Alignment.Center
                 ) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            Icons.Rounded.Keyboard,
-                            null,
-                            modifier = Modifier.size(14.dp),
-                            tint = if (isTextMode) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Text(
-                            if (isTextMode) "Text Mode On" else "Text Mode Off",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = if (isTextMode) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
+                    Icon(
+                        Icons.Rounded.Keyboard,
+                        contentDescription = "Sync Keyboard",
+                        modifier = Modifier.size(20.dp),
+                        tint = if (isTextMode) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
+
+                // Input Field
                 Box(
                     modifier = Modifier
                         .weight(1f)
-                        .clip(RoundedCornerShape(16.dp))
+                        .height(44.dp)
+                        .clip(CircleShape)
                         .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                        .border(1.dp, MaterialTheme.colorScheme.surfaceContainerHighest, RoundedCornerShape(16.dp))
-                        .padding(horizontal = 14.dp, vertical = 12.dp)
+                        .border(1.dp, MaterialTheme.colorScheme.surfaceContainerHighest, CircleShape)
+                        .padding(horizontal = 16.dp),
+                    contentAlignment = Alignment.CenterStart
                 ) {
                     if (textInput.isEmpty()) {
-                        Text("Type text to send to TV…", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f))
+                        Text(
+                            text = if (isTextMode) "Keyboard synced..." else "Type to TV...",
+                            fontSize = 14.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                        )
                     }
                     BasicTextField(
                         value = textInput,
@@ -145,7 +146,11 @@ fun RemoteScreen(
                                 viewModel.sendTextAsKeyboard(oldText, newText)
                             }
                         },
-                        textStyle = TextStyle(fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurface, fontFamily = FontFamily.Default),
+                        textStyle = TextStyle(
+                            fontSize = 14.sp,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontFamily = FontFamily.Default
+                        ),
                         cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
@@ -158,13 +163,15 @@ fun RemoteScreen(
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
+
+                // Send Button
                 Box(
                     modifier = Modifier
                         .size(44.dp)
                         .clip(CircleShape)
                         .background(
                             if (!isTextMode && textInput.isNotEmpty()) MaterialTheme.colorScheme.primary
-                            else MaterialTheme.colorScheme.surfaceContainerHighest
+                            else MaterialTheme.colorScheme.surfaceContainerHigh
                         )
                         .clickable(enabled = !isTextMode && textInput.isNotEmpty()) {
                             viewModel.sendText(textInput)
@@ -173,9 +180,10 @@ fun RemoteScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        Icons.Rounded.Send, "Send",
+                        Icons.Rounded.Send,
+                        contentDescription = "Send",
                         modifier = Modifier.size(20.dp),
-                        tint = if (!isTextMode && textInput.isNotEmpty()) MaterialTheme.colorScheme.onPrimaryContainer.copy(red = 0.22f, green = 0.12f, blue = 0.45f) else MaterialTheme.colorScheme.onSurfaceVariant
+                        tint = if (!isTextMode && textInput.isNotEmpty()) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
                     )
                 }
             }

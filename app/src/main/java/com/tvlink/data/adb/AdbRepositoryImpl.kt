@@ -12,6 +12,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.io.File
 import javax.inject.Inject
@@ -23,7 +25,15 @@ class AdbRepositoryImpl @Inject constructor(
 ) : AdbRepository {
 
     private val connections = mutableMapOf<String, Dadb>()
+    private val reconnectionMutexes = mutableMapOf<String, Mutex>()
+    private val globalMutex = Mutex()
     private val _connectedDevices = MutableStateFlow<List<AdbDevice>>(emptyList())
+
+    private suspend fun getReconnectionMutex(address: String): Mutex {
+        return globalMutex.withLock {
+            reconnectionMutexes.getOrPut(address) { Mutex() }
+        }
+    }
 
     override suspend fun connect(ip: String, port: Int): Result<AdbDevice> =
         withContext(Dispatchers.IO) {
@@ -82,15 +92,33 @@ class AdbRepositoryImpl @Inject constructor(
         }
     }
 
+    private suspend fun <T> withConnection(device: AdbDevice, block: suspend (Dadb) -> T): T {
+        val dadb = connections[device.address] ?: throw Exception("Not connected to ${device.address}")
+        return try {
+            block(dadb)
+        } catch (e: Exception) {
+            if (isTransientTransportError(e)) {
+                val mutex = getReconnectionMutex(device.address)
+                mutex.withLock {
+                    val currentDadb = connections[device.address]
+                    if (currentDadb != null && currentDadb !== dadb) {
+                        return@withLock block(currentDadb)
+                    }
+
+                    reconnect(device)
+                    val freshDadb = connections[device.address] ?: throw Exception("Reconnection failed")
+                    block(freshDadb)
+                }
+            } else {
+                throw e
+            }
+        }
+    }
+
     override suspend fun shell(device: AdbDevice, command: String): Result<ShellResult> =
         withContext(Dispatchers.IO) {
             try {
-                val dadb = connections[device.address]
-                    ?: return@withContext Result.failure(
-                        Exception("Device ${device.address} is not connected")
-                    )
-
-                val response = dadb.shell(command)
+                val response = withConnection(device) { it.shell(command) }
                 Result.success(
                     ShellResult(
                         output = response.allOutput.trim(),
@@ -98,39 +126,26 @@ class AdbRepositoryImpl @Inject constructor(
                     )
                 )
             } catch (e: Exception) {
-                Result.failure(
-                    Exception("Shell command failed: ${e.message}", e)
-                )
+                Result.failure(e)
             }
         }
 
     override fun installApk(device: AdbDevice, apkFile: File): Flow<InstallProgress> = flow {
         emit(InstallProgress.Installing(0))
 
-        val dadb = connections[device.address]
-            ?: throw Exception("Device ${device.address} is not connected. Please reconnect and try again.")
-
-        emit(InstallProgress.Installing(20))
-
         try {
-            // Push the APK to device temp storage
             val remotePath = "/data/local/tmp/tvlink_install.apk"
-            dadb.push(apkFile, remotePath)
+            
+            withConnection(device) { it.push(apkFile, remotePath) }
+            emit(InstallProgress.Installing(50))
 
-            emit(InstallProgress.Installing(60))
-
-            // Run pm install and capture full output
-            val response = dadb.shell("pm install -r -t \"$remotePath\"")
+            val response = withConnection(device) { it.shell("pm install -r -t \"$remotePath\"") }
             val output = response.allOutput.trim()
+            emit(InstallProgress.Installing(80))
 
-            emit(InstallProgress.Installing(90))
-
-            // Clean up remote temp file
-            dadb.shell("rm -f \"$remotePath\"")
-
+            withConnection(device) { it.shell("rm -f \"$remotePath\"") }
             emit(InstallProgress.Installing(100))
 
-            // pm install outputs "Success" or "Failure [REASON]"
             if (output.contains("Success", ignoreCase = true)) {
                 emit(InstallProgress.Success)
             } else {
@@ -149,18 +164,15 @@ class AdbRepositoryImpl @Inject constructor(
     override suspend fun listPackages(device: AdbDevice): Result<List<InstalledApp>> =
         withContext(Dispatchers.IO) {
             try {
-                val dadb = connections[device.address]
-                    ?: return@withContext Result.failure(
-                        Exception("Device ${device.address} is not connected")
-                    )
+                val userPackages = withConnection(device) {
+                    val r = it.shell("pm list packages -3")
+                    parsePackageList(r.allOutput, isSystem = false)
+                }
 
-                // Get third-party packages
-                val userAppsResponse = dadb.shell("pm list packages -3")
-                val userPackages = parsePackageList(userAppsResponse.allOutput, isSystem = false)
-
-                // Get system packages
-                val systemAppsResponse = dadb.shell("pm list packages -s")
-                val systemPackages = parsePackageList(systemAppsResponse.allOutput, isSystem = true)
+                val systemPackages = withConnection(device) {
+                    val r = it.shell("pm list packages -s")
+                    parsePackageList(r.allOutput, isSystem = true)
+                }
 
                 val dedupedPackages = (userPackages + systemPackages)
                     .groupBy { it.packageName }
@@ -168,11 +180,68 @@ class AdbRepositoryImpl @Inject constructor(
 
                 Result.success(dedupedPackages.sortedBy { it.label.lowercase() })
             } catch (e: Exception) {
-                Result.failure(
-                    Exception("Failed to list packages: ${e.message}", e)
-                )
+                Result.failure(e)
             }
         }
+
+    override suspend fun uninstall(device: AdbDevice, packageName: String): Result<Unit> =
+        withContext(Dispatchers.IO) {
+            try {
+                withConnection(device) { it.uninstall(packageName) }
+                Result.success(Unit)
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+        }
+
+    override suspend fun pushFile(device: AdbDevice, localFile: File, remotePath: String): Result<Unit> =
+        withContext(Dispatchers.IO) {
+            try {
+                withConnection(device) { it.push(localFile, remotePath) }
+                Result.success(Unit)
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+        }
+
+    override suspend fun pullFile(device: AdbDevice, remotePath: String, localFile: File): Result<Unit> =
+        withContext(Dispatchers.IO) {
+            try {
+                withConnection(device) { it.pull(localFile, remotePath) }
+                Result.success(Unit)
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+        }
+
+    override fun getConnectedDevices(): Flow<List<AdbDevice>> = _connectedDevices.asStateFlow()
+
+    private fun getDeviceName(dadb: Dadb): String {
+        return try {
+            val model = dadb.shell("getprop ro.product.model").allOutput.trim()
+            val brand = dadb.shell("getprop ro.product.brand").allOutput.trim()
+            if (brand.isNotEmpty() && model.isNotEmpty()) {
+                "$brand $model"
+            } else {
+                model.ifEmpty { "Unknown Device" }
+            }
+        } catch (_: Exception) {
+            "Unknown Device"
+        }
+    }
+
+    private fun parsePackageList(output: String, isSystem: Boolean): List<InstalledApp> {
+        return output.lines()
+            .filter { it.startsWith("package:") }
+            .map { line ->
+                val packageName = line.removePrefix("package:").trim()
+                InstalledApp(
+                    packageName = packageName,
+                    label = formatPackageName(packageName),
+                    isSystemApp = isSystem
+                )
+            }
+    }
 
     /**
      * Converts a package name to a human-readable label.
@@ -267,100 +336,6 @@ class AdbRepositoryImpl @Inject constructor(
                     token.lowercase().replaceFirstChar { it.uppercase() }
                 }
             }
-    }
-
-    override suspend fun uninstall(device: AdbDevice, packageName: String): Result<Unit> =
-        withContext(Dispatchers.IO) {
-            try {
-                val dadb = connections[device.address]
-                    ?: return@withContext Result.failure(
-                        Exception("Device ${device.address} is not connected")
-                    )
-
-                dadb.uninstall(packageName)
-                Result.success(Unit)
-            } catch (e: Exception) {
-                Result.failure(
-                    Exception("Failed to uninstall $packageName: ${e.message}", e)
-                )
-            }
-        }
-
-    override suspend fun pushFile(device: AdbDevice, localFile: File, remotePath: String): Result<Unit> =
-        withContext(Dispatchers.IO) {
-            try {
-                val dadb = connections[device.address]
-                    ?: return@withContext Result.failure(
-                        Exception("Device ${device.address} is not connected")
-                    )
-                dadb.push(localFile, remotePath)
-                Result.success(Unit)
-            } catch (e: Exception) {
-                Result.failure(
-                    Exception("Failed to push file: ${e.message}", e)
-                )
-            }
-        }
-
-    override suspend fun pullFile(device: AdbDevice, remotePath: String, localFile: File): Result<Unit> =
-        withContext(Dispatchers.IO) {
-            try {
-                val dadb = requireConnection(device)
-                dadb.pull(localFile, remotePath)
-                Result.success(Unit)
-            } catch (e: Exception) {
-                val isTransient = isTransientTransportError(e)
-                if (!isTransient) {
-                    return@withContext Result.failure(
-                        Exception("Failed to pull file: ${e.message}", e)
-                    )
-                }
-
-                try {
-                    reconnect(device)
-                    val dadb = requireConnection(device)
-                    dadb.pull(localFile, remotePath)
-                    Result.success(Unit)
-                } catch (retryError: Exception) {
-                    Result.failure(
-                        Exception("Failed to pull file after reconnect: ${retryError.message}", retryError)
-                    )
-                }
-            }
-        }
-
-    override fun getConnectedDevices(): Flow<List<AdbDevice>> = _connectedDevices.asStateFlow()
-
-    private fun getDeviceName(dadb: Dadb): String {
-        return try {
-            val model = dadb.shell("getprop ro.product.model").allOutput.trim()
-            val brand = dadb.shell("getprop ro.product.brand").allOutput.trim()
-            if (brand.isNotEmpty() && model.isNotEmpty()) {
-                "$brand $model"
-            } else {
-                model.ifEmpty { "Unknown Device" }
-            }
-        } catch (_: Exception) {
-            "Unknown Device"
-        }
-    }
-
-    private fun parsePackageList(output: String, isSystem: Boolean): List<InstalledApp> {
-        return output.lines()
-            .filter { it.startsWith("package:") }
-            .map { line ->
-                val packageName = line.removePrefix("package:").trim()
-                InstalledApp(
-                    packageName = packageName,
-                    label = formatPackageName(packageName),
-                    isSystemApp = isSystem
-                )
-            }
-    }
-
-    private fun requireConnection(device: AdbDevice): Dadb {
-        return connections[device.address]
-            ?: throw Exception("Device ${device.address} is not connected")
     }
 
     private fun reconnect(device: AdbDevice) {

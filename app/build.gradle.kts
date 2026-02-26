@@ -102,3 +102,7 @@ dependencies {
 kapt {
     correctErrorTypes = true
 }
+
+tasks.register("testClasses") {
+    dependsOn("compileDebugUnitTestSources")
+}
