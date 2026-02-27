@@ -34,6 +34,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontFamily
@@ -86,28 +88,55 @@ fun DeviceInfoScreen(
             Spacer(Modifier.height(4.dp))
 
             // ── Header card ──────────────────────────────────────────
+            val cs = MaterialTheme.colorScheme
+            val pcContainer = cs.primaryContainer
+            val scContainer = cs.secondaryContainer
+            val primary = cs.primary
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(20.dp))
-                    .background(MaterialTheme.colorScheme.primaryContainer)
+                    .drawBehind {
+                        drawRect(
+                            brush = androidx.compose.ui.graphics.Brush.linearGradient(
+                                colors = listOf(pcContainer, scContainer),
+                                start = androidx.compose.ui.geometry.Offset(0f, 0f),
+                                end = androidx.compose.ui.geometry.Offset(size.width, size.height)
+                            )
+                        )
+                        drawRect(
+                            brush = androidx.compose.ui.graphics.Brush.radialGradient(
+                                colors = listOf(primary.copy(alpha = 0.10f), Color.Transparent),
+                                center = androidx.compose.ui.geometry.Offset(size.width / 2, 0f),
+                                radius = size.width / 1.5f
+                            )
+                        )
+                    }
+                    .border(1.dp, cs.secondary, RoundedCornerShape(20.dp))
                     .padding(vertical = 28.dp, horizontal = 24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 Box(
-                    modifier = Modifier.size(56.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary),
+                    modifier = Modifier
+                        .size(64.dp)
+                        .clip(CircleShape)
+                        .background(primary.copy(alpha = 0.13f))
+                        .border(2.dp, cs.primary, CircleShape)
+                        .drawBehind {
+                            drawCircle(primary.copy(alpha = 0.2f), radius = size.width / 2 + 12.dp.toPx())
+                        },
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.Rounded.Tv, null, modifier = Modifier.size(28.dp), tint = MaterialTheme.colorScheme.primaryContainer)
+                    Icon(Icons.Rounded.Tv, null, modifier = Modifier.size(32.dp), tint = cs.primary)
                 }
                 Text(
                     info.model.ifEmpty { "Unknown Device" },
-                    fontSize = 20.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onPrimaryContainer
+                    fontSize = 20.sp, fontWeight = FontWeight.SemiBold, color = cs.onPrimaryContainer
                 )
                 Text(
                     "${info.manufacturer} • Android ${info.androidVersion}",
-                    fontSize = 13.sp, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.75f)
+                    fontSize = 13.sp, color = cs.onPrimaryContainer.copy(alpha = 0.75f)
                 )
             }
 
@@ -192,14 +221,9 @@ private fun InfoSection(
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Box(
-                modifier = Modifier.size(32.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(icon, null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
-            }
+            Text("•", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
             Text(title, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
         }
         content()

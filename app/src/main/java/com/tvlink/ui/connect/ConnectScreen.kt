@@ -192,7 +192,7 @@ fun ConnectScreen(
             ) {
                 StatusCard(connectedDevice = state.connectedDevice, isConnecting = state.isConnecting)
 
-                if (state.connectedDevice == null && !state.isConnecting) {
+                if (!state.isConnecting) {
                     InfoTile(
                         modifier = Modifier.fillMaxWidth(),
                         label = "ADB SERVICE",
@@ -330,18 +330,27 @@ private fun StatusCard(connectedDevice: AdbDevice?, isConnecting: Boolean) {
 private fun LiveIndicator() {
     val transition = rememberInfiniteTransition(label = "pulse")
     val alpha by transition.animateFloat(0.4f, 1f, infiniteRepeatable(tween(1000, easing = LinearEasing), RepeatMode.Reverse), label = "alpha")
+    val tertiary = MaterialTheme.colorScheme.tertiary
 
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp),
         modifier = Modifier.padding(top = 8.dp)
     ) {
-        Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(MaterialTheme.colorScheme.tertiary.copy(alpha = alpha)))
+        Box(
+            modifier = Modifier
+                .size(8.dp)
+                .clip(CircleShape)
+                .background(tertiary.copy(alpha = alpha))
+                .drawBehind {
+                    drawCircle(tertiary.copy(alpha = 0.4f * alpha), radius = size.width / 2 + 4.dp.toPx())
+                }
+        )
         Text(
             text = "LIVE",
             fontSize = 11.sp,
             fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.tertiary.copy(alpha = alpha),
+            color = tertiary.copy(alpha = alpha),
             letterSpacing = 1.sp
         )
     }
