@@ -10,6 +10,7 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
@@ -20,6 +21,7 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -57,17 +59,14 @@ import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.RadioButtonChecked
 import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.material.icons.rounded.Smartphone
-import androidx.compose.material.icons.rounded.Tv
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
+import androidx.compose.material.icons.outlined.Tv
+import androidx.compose.material.icons.rounded.PowerSettingsNew
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarHost
@@ -89,6 +88,7 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontFamily
@@ -100,6 +100,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.tvlink.data.adb.model.AdbDevice
+import com.tvlink.ui.theme.*
 
 import kotlinx.coroutines.launch
 
@@ -194,10 +195,8 @@ fun ConnectScreen(
                 if (state.connectedDevice == null && !state.isConnecting) {
                     InfoTile(
                         modifier = Modifier.fillMaxWidth(),
-                        icon = Icons.Rounded.Smartphone,
                         label = "ADB SERVICE",
-                        value = "Running",
-                        iconTint = Color(0xFF93D3A2)
+                        value = "Running"
                     )
                 }
 
@@ -230,82 +229,170 @@ fun ConnectScreen(
     }
 }
 
-// ─── Status Card ──────────────────────────────────────────────────────────────
+// ─── Connection Card ──────────────────────────────────────────────────────────
 
 @Composable
 private fun StatusCard(connectedDevice: AdbDevice?, isConnecting: Boolean) {
     val isConnected = connectedDevice != null && !isConnecting
-    val bgColor by animateColorAsState(if (isConnected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh, tween(500), label = "bg")
-    val iconBg by animateColorAsState(if (isConnected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.background, tween(500), label = "iconBg")
-    val iconTint by animateColorAsState(if (isConnected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.onSurfaceVariant, tween(500), label = "tint")
 
-    ElevatedCard(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(28.dp),
-        colors = CardDefaults.elevatedCardColors(containerColor = bgColor),
-        elevation = CardDefaults.elevatedCardElevation(defaultElevation = if (isConnected) 4.dp else 1.dp)
+    val colorScheme = MaterialTheme.colorScheme
+    // Border: AccentDim when connected, BorderColor when not
+    val borderColor by animateColorAsState(if (isConnected) colorScheme.secondary else colorScheme.outline, tween(500), label = "borderColor")
+    
+    // Resolve colors outside drawBehind as it is not a @Composable context
+    val primaryContainer = colorScheme.primaryContainer
+    val secondaryContainer = colorScheme.secondaryContainer
+    val primary = colorScheme.primary
+    val surface = colorScheme.surface
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(20.dp))
+            .border(1.dp, borderColor, RoundedCornerShape(20.dp))
+            .drawBehind {
+                if (isConnected) {
+                    // Linear gradient AccentBgMid -> AccentBg
+                    val brush = androidx.compose.ui.graphics.Brush.linearGradient(
+                        colors = listOf(primaryContainer, secondaryContainer),
+                        start = androidx.compose.ui.geometry.Offset(0f, 0f),
+                        end = androidx.compose.ui.geometry.Offset(size.width, size.height)
+                    )
+                    drawRect(brush)
+                    // Radial glow overlay at top
+                    val glowBrush = androidx.compose.ui.graphics.Brush.radialGradient(
+                        colors = listOf(primary.copy(alpha = 0.12f), Color.Transparent),
+                        center = androidx.compose.ui.geometry.Offset(size.width / 2, 0f),
+                        radius = size.width / 1.5f
+                    )
+                    drawRect(glowBrush)
+                } else {
+                    drawRect(surface)
+                }
+            }
     ) {
         Column(
-            modifier = Modifier.padding(horizontal = 20.dp, vertical = 28.dp).fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            modifier = Modifier
+                .padding(vertical = 28.dp, horizontal = 20.dp)
+                .fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            // TV icon in a 72.dp circle with 2.dp border
             Box(
-                modifier = Modifier.size(64.dp).clip(CircleShape).background(iconBg),
+                modifier = Modifier
+                    .size(72.dp)
+                    .clip(CircleShape)
+                    .background(if (isConnected) colorScheme.primary.copy(alpha = 0.13f) else colorScheme.surfaceVariant)
+                    .border(2.dp, if (isConnected) colorScheme.primary else colorScheme.outline, CircleShape)
+                    .drawBehind {
+                        if (isConnected) {
+                            drawCircle(
+                                color = primary.copy(alpha = 0.2f),
+                                radius = size.width / 2 + 12.dp.toPx()
+                            )
+                        }
+                    },
                 contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Rounded.Tv, null, modifier = Modifier.size(36.dp), tint = iconTint)
+                Icon(
+                    Icons.Outlined.Tv,
+                    null,
+                    modifier = Modifier.size(34.dp),
+                    tint = if (isConnected) colorScheme.primary else colorScheme.outlineVariant
+                )
             }
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    text = if (isConnected && connectedDevice != null) connectedDevice.name.ifEmpty { connectedDevice.address } else "Not Connected",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = if (isConnected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = if (isConnected && connectedDevice != null) "Connected via ADB • ${connectedDevice.address}"
-                           else "Ensure TV and phone are on the same WiFi",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = if (isConnected) MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.75f) else MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 4.dp),
-                    textAlign = TextAlign.Center
-                )
+            Spacer(modifier = Modifier.height(18.dp))
+            Text(
+                text = if (isConnected && connectedDevice != null) connectedDevice.name.ifEmpty { connectedDevice.address } else "Not Connected",
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = (-0.3).sp,
+                color = colorScheme.onSurface
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = if (isConnected && connectedDevice != null) "${connectedDevice.address} · ADB"
+                       else "Ensure TV and phone are on the same WiFi",
+                fontSize = 13.sp,
+                color = colorScheme.onSurfaceVariant,
+                fontFamily = FontFamily.Monospace,
+                textAlign = TextAlign.Center
+            )
+            if (isConnected) {
+                Spacer(modifier = Modifier.height(14.dp))
+                LiveIndicator()
             }
         }
     }
 }
 
-// ─── Info Tile ────────────────────────────────────────────────────────────────
+@Composable
+private fun LiveIndicator() {
+    val transition = rememberInfiniteTransition(label = "pulse")
+    val alpha by transition.animateFloat(0.4f, 1f, infiniteRepeatable(tween(1000, easing = LinearEasing), RepeatMode.Reverse), label = "alpha")
+
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        modifier = Modifier.padding(top = 8.dp)
+    ) {
+        Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(MaterialTheme.colorScheme.tertiary.copy(alpha = alpha)))
+        Text(
+            text = "LIVE",
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.tertiary.copy(alpha = alpha),
+            letterSpacing = 1.sp
+        )
+    }
+}
+
+// ─── ADB Banner ───────────────────────────────────────────────────────────────
 
 @Composable
 private fun InfoTile(
     modifier: Modifier = Modifier,
-    icon: ImageVector,
     label: String,
-    value: String,
-    iconTint: Color = MaterialTheme.colorScheme.primary
+    value: String
 ) {
-    OutlinedCard(
-        modifier = modifier,
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.outlinedCardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
-        border = CardDefaults.outlinedCardBorder(enabled = true).copy(width = 1.dp, brush = androidx.compose.ui.graphics.SolidColor(MaterialTheme.colorScheme.surfaceContainerHighest))
+    val colorScheme = MaterialTheme.colorScheme
+    val tertiary = colorScheme.tertiary
+    val tertiaryContainer = colorScheme.tertiaryContainer
+    val onSurface = colorScheme.onSurface
+    val onSurfaceVariant = colorScheme.onSurfaceVariant
+
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(14.dp))
+            .background(tertiaryContainer)
+            .border(1.dp, tertiary.copy(0.27f), RoundedCornerShape(14.dp))
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
-                modifier = Modifier.size(34.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceContainerHighest),
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(tertiary.copy(0.13f)),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(icon, null, modifier = Modifier.size(16.dp), tint = iconTint)
+                Box(modifier = Modifier
+                    .size(10.dp)
+                    .clip(CircleShape)
+                    .background(tertiary)
+                    .drawBehind {
+                        drawCircle(tertiary.copy(alpha = 0.5f), radius = size.width / 2 + 4.dp.toPx())
+                    }
+                )
             }
-            Column {
-                Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, letterSpacing = 0.8.sp)
-                Text(value, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(label, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = tertiary, letterSpacing = 0.08.sp)
+                Text(value, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = onSurface)
             }
+            Text("Port 5555", fontSize = 11.sp, color = onSurfaceVariant)
         }
     }
 }
@@ -350,11 +437,11 @@ private fun SectionRow(title: String, scanning: Boolean) {
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(title, fontSize = 13.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(title.uppercase(), fontSize = 12.sp, fontWeight = FontWeight.Bold, letterSpacing = 0.08.sp, color = MaterialTheme.colorScheme.primary)
         AnimatedVisibility(visible = scanning) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 CircularProgressIndicator(modifier = Modifier.size(12.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.primary)
-                Text("Scanning...", fontSize = 11.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.primary)
+                Text("SCANNING", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
             }
         }
     }
@@ -365,23 +452,32 @@ private fun DeviceRow(device: AdbDevice, isNew: Boolean = false, onClick: () -> 
     Row(
         modifier = Modifier.fillMaxWidth()
             .clip(RoundedCornerShape(20.dp))
-            .background(MaterialTheme.colorScheme.surfaceContainer)
-            .border(1.dp, MaterialTheme.colorScheme.surfaceContainerHighest, RoundedCornerShape(20.dp))
+            .background(MaterialTheme.colorScheme.surface)
+            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(20.dp))
             .clickable(onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
-            modifier = Modifier.size(40.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceContainerHighest),
+            modifier = Modifier.size(44.dp).clip(RoundedCornerShape(12.dp))
+                .background(MaterialTheme.colorScheme.secondaryContainer)
+                .border(1.dp, MaterialTheme.colorScheme.secondary, RoundedCornerShape(12.dp)),
             contentAlignment = Alignment.Center
         ) {
-            Icon(Icons.Rounded.Tv, null, modifier = Modifier.size(20.dp), tint = if (isNew) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onPrimaryContainer)
+            Icon(Icons.Outlined.Tv, null, modifier = Modifier.size(22.dp), tint = MaterialTheme.colorScheme.primary)
         }
         Column(modifier = Modifier.weight(1f).padding(horizontal = 14.dp)) {
             Text(device.name.ifEmpty { "Android Device" }, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
-            Text(device.address, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontFamily = FontFamily.Monospace, modifier = Modifier.padding(top = 2.dp))
+            Text(device.address, fontSize = 11.sp, color = MaterialTheme.colorScheme.outlineVariant, fontFamily = FontFamily.Monospace, modifier = Modifier.padding(top = 2.dp))
         }
-        Icon(Icons.Rounded.ChevronRight, "Connect", modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        Box(
+            modifier = Modifier
+                .background(MaterialTheme.colorScheme.secondaryContainer, RoundedCornerShape(10.dp))
+                .border(1.dp, MaterialTheme.colorScheme.secondary, RoundedCornerShape(10.dp))
+                .padding(horizontal = 14.dp, vertical = 6.dp)
+        ) {
+            Text("Connect", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
+        }
     }
 }
 
@@ -435,7 +531,7 @@ private fun ConnectedState(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text("Quick Tools", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(horizontal = 4.dp))
+            Text("QUICK TOOLS", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary, letterSpacing = 0.08.sp, modifier = Modifier.padding(horizontal = 4.dp))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 ToolCard(Modifier.weight(1f), Icons.Outlined.Gamepad, "Remote", onClick = onRemote)
                 ToolCard(Modifier.weight(1f), Icons.Outlined.Folder, "Files", onClick = onFiles)
@@ -460,12 +556,12 @@ private fun ConnectedState(
         }
 
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text("Power & Maintenance", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(horizontal = 4.dp))
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text("POWER & MAINTENANCE", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary, letterSpacing = 0.08.sp, modifier = Modifier.padding(horizontal = 4.dp))
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 ToolCard(Modifier.weight(1f), Icons.Outlined.CleaningServices, "Clear\nCache", onClick = { onQuickCommand("pm trim-caches 999999999999999") })
                 ToolCard(Modifier.weight(1f), Icons.Outlined.NightsStay, "Sleep", onClick = { onQuickCommand("input keyevent 26") })
                 ToolCard(Modifier.weight(1f), Icons.Outlined.RestartAlt, "Reboot", onClick = { onQuickCommand("reboot") })
-                ToolCard(Modifier.weight(1f), Icons.Outlined.Power, "Power\nOff", onClick = { onQuickCommand("reboot -p") }, isDestructive = true)
+                ToolCard(Modifier.weight(1f), Icons.Rounded.PowerSettingsNew, "Power\nOff", onClick = { onQuickCommand("reboot -p") }, isDestructive = true)
             }
         }
 
@@ -494,14 +590,14 @@ private fun ConnectedState(
 
         Box(
             modifier = Modifier.fillMaxWidth()
-                .clip(RoundedCornerShape(50))
-                .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                .border(1.dp, MaterialTheme.colorScheme.surfaceContainerHighest, RoundedCornerShape(50))
+                .clip(RoundedCornerShape(999.dp))
+                .background(MaterialTheme.colorScheme.surface)
+                .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(999.dp))
                 .clickable(onClick = onDisconnect)
                 .padding(vertical = 16.dp),
             contentAlignment = Alignment.Center
         ) {
-            Text("Disconnect", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onPrimaryContainer)
+            Text("Disconnect", fontSize = 15.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.error)
         }
     }
 }
@@ -614,23 +710,48 @@ private fun ToolCard(
     onClick: () -> Unit,
     isDestructive: Boolean = false
 ) {
-    Card(
-        onClick = onClick,
-        modifier = modifier.aspectRatio(1f),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = if (isDestructive) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.surfaceContainer,
-            contentColor = if (isDestructive) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onSurfaceVariant
-        )
+    var isPressed by remember { mutableStateOf(false) }
+    
+    val scale by animateFloatAsState(targetValue = if (isPressed) 0.94f else 1f, label = "scale")
+    
+    val colorScheme = MaterialTheme.colorScheme
+    val defaultBg = if (isDestructive) colorScheme.errorContainer else colorScheme.surface
+    val pressedBg = if (isDestructive) colorScheme.errorContainer else colorScheme.secondaryContainer
+    val defaultBorder = if (isDestructive) colorScheme.error.copy(alpha = 0.4f) else colorScheme.outline
+    val pressedBorder = if (isDestructive) colorScheme.error.copy(alpha = 0.4f) else colorScheme.secondary
+    val defaultTint = if (isDestructive) colorScheme.error else colorScheme.outlineVariant
+    val pressedTint = if (isDestructive) colorScheme.error else colorScheme.primary
+
+    val bgColor by animateColorAsState(if (isPressed) pressedBg else defaultBg, tween(200), label = "bg")
+    val borderColor by animateColorAsState(if (isPressed) pressedBorder else defaultBorder, tween(200), label = "border")
+    val tintColor by animateColorAsState(if (isPressed) pressedTint else defaultTint, tween(200), label = "tint")
+
+    Box(
+        modifier = modifier
+            .scale(scale)
+            .clip(RoundedCornerShape(16.dp))
+            .background(bgColor)
+            .border(1.dp, borderColor, RoundedCornerShape(16.dp))
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onPress = {
+                        isPressed = true
+                        tryAwaitRelease()
+                        isPressed = false
+                    },
+                    onTap = { onClick() }
+                )
+            },
+        contentAlignment = Alignment.Center
     ) {
         Column(
-            modifier = Modifier.fillMaxSize().padding(8.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+            // Generic padding across all tools
+            modifier = Modifier.padding(vertical = 16.dp, horizontal = 4.dp)
         ) {
-            Icon(icon, label, modifier = Modifier.size(26.dp), tint = if (isDestructive) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.primary)
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(label, style = MaterialTheme.typography.labelSmall, color = if (isDestructive) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center, lineHeight = 13.sp)
+            Icon(icon, label, modifier = Modifier.size(22.dp), tint = tintColor)
+            Spacer(modifier = Modifier.height(10.dp))
+            Text(label, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = tintColor, textAlign = TextAlign.Center, lineHeight = 14.sp)
         }
     }
 }

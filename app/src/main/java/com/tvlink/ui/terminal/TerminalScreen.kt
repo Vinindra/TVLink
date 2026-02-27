@@ -2,6 +2,7 @@ package com.tvlink.ui.terminal
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -9,6 +10,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -46,12 +48,9 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.tvlink.ui.components.ConnectionRequiredState
 
-// Hardcoded terminal palette — always readable on the dark terminal background
-private val TerminalBg      = Color(0xFF1A1A1A)
-private val TerminalCmd     = Color(0xFFD0BCFF) // purple  — commands
-private val TerminalOutput  = Color(0xFF98C379) // green   — stdout
+private val TerminalBg      = Color(0xFF060504)
+private val TerminalOutput  = Color(0xFF9FD89F) // green   — stdout
 private val TerminalError   = Color(0xFFE06C75) // red     — stderr / errors
-private val TerminalSystem  = Color(0xFFABB2BF) // gray    — system messages
 
 @Composable
 fun TerminalScreen(
@@ -104,18 +103,23 @@ fun TerminalScreen(
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     items(state.history) { entry ->
-                        Text(
-                            text = entry.text,
-                            fontFamily = FontFamily.Monospace,
-                            fontSize = 12.sp,
-                            color = when (entry.type) {
-                                EntryType.COMMAND -> TerminalCmd
-                                EntryType.OUTPUT  -> TerminalOutput
-                                EntryType.ERROR   -> TerminalError
-                                EntryType.SYSTEM  -> TerminalSystem
-                            },
-                            lineHeight = 18.sp
-                        )
+                        Row(modifier = Modifier.padding(start = if (entry.type == EntryType.COMMAND) 0.dp else 12.dp)) {
+                            if (entry.type == EntryType.COMMAND) {
+                                Text("$ ", color = MaterialTheme.colorScheme.outlineVariant, fontFamily = FontFamily.Monospace, fontSize = 13.sp)
+                            }
+                            Text(
+                                text = entry.text,
+                                fontFamily = FontFamily.Monospace,
+                                fontSize = 13.sp,
+                                color = when (entry.type) {
+                                    EntryType.COMMAND -> MaterialTheme.colorScheme.primary
+                                    EntryType.OUTPUT  -> TerminalOutput
+                                    EntryType.ERROR   -> TerminalError
+                                    EntryType.SYSTEM  -> MaterialTheme.colorScheme.onSurfaceVariant
+                                },
+                                lineHeight = 22.sp // 1.7 * 13 = ~22
+                            )
+                        }
                     }
                 }
 
@@ -123,51 +127,52 @@ fun TerminalScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 16.dp),
+                        .padding(top = 12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     // Clear button
-                    IconButton(
-                        onClick = { viewModel.clearHistory() },
+                    Box(
                         modifier = Modifier
-                            .size(48.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.surfaceContainerHighest)
+                            .size(44.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(MaterialTheme.colorScheme.surface)
+                            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(12.dp))
+                            .clickable { viewModel.clearHistory() },
+                        contentAlignment = Alignment.Center
                     ) {
-                        Icon(
-                            Icons.Outlined.DeleteSweep,
-                            contentDescription = "Clear",
-                            modifier = Modifier.size(20.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        Text(
+                            "⌫",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontSize = 16.sp
                         )
                     }
                     Row(
                         modifier = Modifier
                             .weight(1f)
-                            .clip(RoundedCornerShape(50))
-                            .background(MaterialTheme.colorScheme.surfaceContainer)
-                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                            .height(44.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(MaterialTheme.colorScheme.surface)
+                            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(12.dp))
+                            .padding(horizontal = 14.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
                             text = "$",
                             color = MaterialTheme.colorScheme.primary,
                             fontFamily = FontFamily.Monospace,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 14.sp
+                            fontSize = 14.sp,
+                            modifier = Modifier.padding(end = 8.dp)
                         )
 
                         BasicTextField(
                             value = state.currentInput,
                             onValueChange = { viewModel.updateInput(it) },
-                            modifier = Modifier
-                                .weight(1f)
-                                .padding(start = 8.dp),
+                            modifier = Modifier.weight(1f),
                             textStyle = TextStyle(
                                 color = MaterialTheme.colorScheme.onSurface,
                                 fontFamily = FontFamily.Monospace,
-                                fontSize = 14.sp
+                                fontSize = 13.sp
                             ),
                             cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
                             singleLine = true,
@@ -182,7 +187,7 @@ fun TerminalScreen(
                                             text = "Enter shell command...",
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             fontFamily = FontFamily.Monospace,
-                                            fontSize = 14.sp
+                                            fontSize = 13.sp
                                         )
                                     }
                                     innerTextField()
@@ -192,21 +197,19 @@ fun TerminalScreen(
                     }
 
                     val isEnabled = state.currentInput.isNotBlank() && !state.isRunning
-                    IconButton(
-                        onClick = { viewModel.executeCommand() },
-                        enabled = isEnabled,
+                    Box(
                         modifier = Modifier
-                            .size(48.dp)
-                            .clip(CircleShape)
-                            .background(
-                                if (isEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHighest
-                            )
+                            .size(44.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(MaterialTheme.colorScheme.primary.copy(alpha = if (isEnabled) 1f else 0.5f))
+                            .clickable(enabled = isEnabled) { viewModel.executeCommand() },
+                        contentAlignment = Alignment.Center
                     ) {
-                        Icon(
-                            imageVector = Icons.Rounded.Send,
-                            contentDescription = "Send",
-                            modifier = Modifier.size(20.dp),
-                            tint = if (isEnabled) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                        Text(
+                            "→",
+                            color = Color(0xFF1A0E0A),
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold
                         )
                     }
                 }

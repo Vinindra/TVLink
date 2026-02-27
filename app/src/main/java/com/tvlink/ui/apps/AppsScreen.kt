@@ -4,6 +4,8 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -59,6 +61,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -152,19 +155,18 @@ fun AppsScreen(
         floatingActionButton = {
             val isInstalling = state.installProgress is InstallProgress.Installing
             if (state.isConnected && !isInstalling) {
-                ExtendedFloatingActionButton(
-                    onClick = { apkPicker.launch("application/vnd.android.package-archive") },
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary,
-                    shape = RoundedCornerShape(16.dp)
+                Row(
+                    modifier = Modifier
+                        .padding(end = 4.dp, bottom = 4.dp) // Extended FAB offset
+                        .clip(RoundedCornerShape(18.dp))
+                        .background(MaterialTheme.colorScheme.primary)
+                        .clickable(onClick = { apkPicker.launch("application/vnd.android.package-archive") })
+                        .padding(horizontal = 18.dp, vertical = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Outlined.Add,
-                        contentDescription = null,
-                        modifier = Modifier.size(24.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(text = "Install APK", fontWeight = FontWeight.Medium)
+                    Text("+", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimary, lineHeight = 20.sp)
+                    Text(text = "Install APK", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimary)
                 }
             }
         }
@@ -197,38 +199,48 @@ fun AppsScreen(
                                 InstallProgressBanner(percent = installProgress.percent)
                             }
 
-                            OutlinedTextField(
-                                value = state.filter,
-                                onValueChange = { viewModel.setFilter(it) },
-                                modifier = Modifier.fillMaxWidth(),
-                                placeholder = { Text("Search apps…") },
-                                leadingIcon = {
-                                    Icon(
-                                        imageVector = Icons.Outlined.Search,
-                                        contentDescription = "Search",
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                },
-                                trailingIcon = {
-                                    if (state.filter.isNotEmpty()) {
-                                        IconButton(onClick = { viewModel.setFilter("") }) {
-                                            Icon(
-                                                imageVector = Icons.Outlined.Clear,
-                                                contentDescription = "Clear",
-                                                modifier = Modifier.size(18.dp)
-                                            )
-                                        }
-                                    }
-                                },
-                                singleLine = true,
-                                shape = RoundedCornerShape(16.dp),
-                                colors = OutlinedTextFieldDefaults.colors(
-                                    focusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
-                                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
-                                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(14.dp))
+                                    .background(MaterialTheme.colorScheme.surface)
+                                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(14.dp))
+                                    .padding(horizontal = 14.dp, vertical = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.Search,
+                                    contentDescription = "Search",
+                                    modifier = Modifier.size(16.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
-                            )
+                                Spacer(modifier = Modifier.width(10.dp))
+                                androidx.compose.foundation.text.BasicTextField(
+                                    value = state.filter,
+                                    onValueChange = { viewModel.setFilter(it) },
+                                    modifier = Modifier.weight(1f),
+                                    textStyle = androidx.compose.ui.text.TextStyle(
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        fontSize = 15.sp
+                                    ),
+                                    singleLine = true,
+                                    decorationBox = { innerTextField ->
+                                        if (state.filter.isEmpty()) {
+                                            Text("Search apps...", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 15.sp)
+                                        }
+                                        innerTextField()
+                                    }
+                                )
+                                if (state.filter.isNotEmpty()) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.Clear,
+                                        contentDescription = "Clear",
+                                        modifier = Modifier.size(16.dp).clickable { viewModel.setFilter("") },
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(2.dp))
 
                             FilterChipRow(
                                 selected = selectedFilter,
@@ -307,24 +319,21 @@ private fun FilterChipRow(
                 AppFilter.SYSTEM -> systemCount
             }
             val label = "${filter.label} ($count)"
+            val textColor = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+            val bgColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface
+            val borderColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
 
-            FilterChip(
-                selected = isSelected,
-                onClick = { onSelect(filter) },
-                label = { Text(label, style = MaterialTheme.typography.labelLarge) },
-                colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                    selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                    labelColor = MaterialTheme.colorScheme.onSurfaceVariant
-                ),
-                border = FilterChipDefaults.filterChipBorder(
-                    enabled = true,
-                    selected = isSelected,
-                    borderColor = MaterialTheme.colorScheme.outline
-                ),
-                shape = RoundedCornerShape(50)
-            )
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(bgColor)
+                    .border(1.dp, borderColor, RoundedCornerShape(999.dp))
+                    .clickable(onClick = { onSelect(filter) })
+                    .padding(horizontal = 14.dp, vertical = 6.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(label, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = textColor)
+            }
         }
     }
 }
@@ -414,96 +423,93 @@ private fun AppCard(
     onLaunch: () -> Unit,
     onUninstall: () -> Unit
 ) {
-    Card(
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
-        modifier = Modifier.fillMaxWidth()
+    val iconColor = iconColorForPackage(app.packageName)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(MaterialTheme.colorScheme.surface)
+            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(14.dp))
+            .padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
-            modifier = Modifier.padding(14.dp).fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
+        // App icon with color-coded background
+        Box(
+            modifier = Modifier
+                .size(44.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(iconColor.copy(alpha = 0.13f))
+                .border(1.dp, iconColor.copy(alpha = 0.33f), RoundedCornerShape(12.dp)),
+            contentAlignment = Alignment.Center
         ) {
-            // App icon with color-coded background
-            val iconColor = iconColorForPackage(app.packageName)
             Box(
                 modifier = Modifier
-                    .size(44.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(iconColor.copy(alpha = 0.15f)),
+                    .size(20.dp)
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(iconColor.copy(alpha = 0.53f)) // 0x88 is ~53%
+            )
+        }
+
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .padding(horizontal = 12.dp)
+        ) {
+            Text(
+                text = app.label,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                text = app.packageName,
+                fontSize = 11.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontFamily = FontFamily.Monospace,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(top = 2.dp)
+            )
+        }
+
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            val greenColor = MaterialTheme.colorScheme.tertiary
+            val redColor = MaterialTheme.colorScheme.error
+            Box(
+                modifier = Modifier
+                    .size(34.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(greenColor.copy(alpha = 0.09f)) // 0x18 is roughly 0.09f
+                    .border(1.dp, greenColor.copy(alpha = 0.27f), RoundedCornerShape(8.dp))
+                    .clickable(onClick = onLaunch),
                 contentAlignment = Alignment.Center
             ) {
-                if (app.iconUrl != null) {
-                    AsyncImage(
-                        model = app.iconUrl,
-                        contentDescription = "App Icon",
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
-                    )
-                } else if (app.isSystemApp) {
-                    Icon(
-                        imageVector = Icons.Outlined.Settings,
-                        contentDescription = null,
-                        modifier = Modifier.size(22.dp),
-                        tint = iconColor
-                    )
-                } else {
-                    Icon(
-                        imageVector = Icons.Outlined.Android,
-                        contentDescription = null,
-                        modifier = Modifier.size(22.dp),
-                        tint = iconColor
-                    )
-                }
-            }
-
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(horizontal = 12.dp)
-            ) {
-                Text(
-                    text = app.label,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                // Play solid icon from compose
+                Icon(
+                    imageVector = Icons.Outlined.PlayArrow,
+                    contentDescription = "Launch",
+                    modifier = Modifier.size(16.dp),
+                    tint = greenColor
                 )
-                Text(
-                    text = app.packageName,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                if (app.versionName != null) {
-                    Text(
-                        text = "v${app.versionName}",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                        maxLines = 1
-                    )
-                }
             }
-
-            Row {
-                IconButton(onClick = onLaunch) {
+            if (!app.isSystemApp) {
+                Box(
+                    modifier = Modifier
+                        .size(34.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(redColor.copy(alpha = 0.09f))
+                        .border(1.dp, redColor.copy(alpha = 0.27f), RoundedCornerShape(8.dp))
+                        .clickable(onClick = onUninstall),
+                    contentAlignment = Alignment.Center
+                ) {
                     Icon(
-                        imageVector = Icons.Outlined.PlayArrow,
-                        contentDescription = "Launch",
-                        modifier = Modifier.size(18.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        imageVector = Icons.Outlined.Delete,
+                        contentDescription = "Uninstall",
+                        modifier = Modifier.size(14.dp),
+                        tint = redColor
                     )
-                }
-                if (!app.isSystemApp) {
-                    IconButton(onClick = onUninstall) {
-                        Icon(
-                            imageVector = Icons.Outlined.Delete,
-                            contentDescription = "Uninstall",
-                            modifier = Modifier.size(18.dp),
-                            tint = MaterialTheme.colorScheme.error
-                        )
-                    }
                 }
             }
         }

@@ -7,73 +7,90 @@ import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
 private val TVLinkDarkScheme = darkColorScheme(
-    primary = PrimaryPurple,
-    onPrimary = OnPrimaryDark,
-    primaryContainer = PrimaryContainerDark,
-    onPrimaryContainer = OnPrimaryContainerDark,
-    secondary = PrimaryPurple,
-    onSecondary = OnPrimaryDark,
-    secondaryContainer = SurfaceContainerHighestDark,
-    onSecondaryContainer = OnPrimaryContainerDark,
-    tertiary = InfoBlueDark,
-    background = SurfaceBaseDark,
-    onBackground = OnSurfaceDark,
-    surface = SurfaceBaseDark,
-    onSurface = OnSurfaceDark,
-    surfaceVariant = SurfaceContainerHighDark,
-    onSurfaceVariant = OnSurfaceVariantDark,
-    surfaceContainerLowest = SurfaceBaseDark,
-    surfaceContainerLow = SurfaceContainerDark,
-    surfaceContainer = SurfaceContainerDark,
-    surfaceContainerHigh = SurfaceContainerHighDark,
-    surfaceContainerHighest = SurfaceContainerHighestDark,
-    error = ErrorContainerDark,
-    onError = OnErrorContainerDark,
-    errorContainer = ErrorContainerDark,
-    onErrorContainer = OnErrorContainerDark,
-    outline = SurfaceVariantDark,
-    outlineVariant = SurfaceContainerHighestDark
+    primary = AccentPrimary,
+    onPrimary = Color(0xFF1E130F), // Dark contrasting color for text on primary
+    primaryContainer = AccentBgMid,
+    onPrimaryContainer = TextPrimary,
+    
+    secondary = AccentDim,
+    onSecondary = Color(0xFF1E130F),
+    secondaryContainer = AccentBg,
+    onSecondaryContainer = TextPrimary,
+    
+    tertiary = StatusGreen,
+    onTertiary = Color(0xFF1A3324),
+    tertiaryContainer = StatusGreenBg,
+    onTertiaryContainer = StatusGreen,
+    
+    background = BgPrimary,
+    onBackground = TextPrimary,
+    
+    surface = SurfacePrimary,
+    onSurface = TextPrimary,
+    surfaceVariant = SurfaceAlt,
+    onSurfaceVariant = TextMuted,
+    
+    surfaceContainerLowest = BgPrimary,
+    surfaceContainerLow = SurfacePrimary,
+    surfaceContainer = SurfacePrimary,
+    surfaceContainerHigh = SurfaceAlt,
+    surfaceContainerHighest = BorderColor,
+    
+    error = StatusRed,
+    onError = Color(0xFF1A0A0A),
+    errorContainer = StatusRedBg,
+    onErrorContainer = StatusRed,
+    
+    outline = BorderColor,
+    outlineVariant = TextDim
 )
 
 private val TVLinkLightScheme = lightColorScheme(
-    primary = PrimaryPurpleLight,
-    onPrimary = OnPrimaryLight,
-    primaryContainer = PrimaryContainerLight,
-    onPrimaryContainer = OnPrimaryContainerLight,
-    secondary = PrimaryPurpleLight,
-    onSecondary = OnPrimaryLight,
-    secondaryContainer = SurfaceContainerHighestLight,
-    onSecondaryContainer = OnPrimaryContainerLight,
-    tertiary = InfoBlueLight,
-    background = SurfaceBaseLight,
-    onBackground = OnSurfaceLight,
-    surface = SurfaceBaseLight,
-    onSurface = OnSurfaceLight,
-    surfaceVariant = SurfaceContainerHighLight,
-    onSurfaceVariant = OnSurfaceVariantLight,
-    surfaceContainerLowest = SurfaceBaseLight,
-    surfaceContainerLow = SurfaceContainerLight,
-    surfaceContainer = SurfaceContainerLight,
-    surfaceContainerHigh = SurfaceContainerHighLight,
-    surfaceContainerHighest = SurfaceContainerHighestLight,
-    error = ErrorContainerLight,
-    onError = OnErrorContainerLight,
-    errorContainer = ErrorContainerLight,
-    onErrorContainer = OnErrorContainerLight,
-    outline = SurfaceVariantLight,
-    outlineVariant = SurfaceContainerHighestLight
+    primary = AccentPrimaryLight,
+    onPrimary = Color(0xFFFFFFFF), 
+    primaryContainer = AccentBgMidLight,
+    onPrimaryContainer = TextPrimaryLight,
+    
+    secondary = AccentDimLight,
+    onSecondary = Color(0xFFFFFFFF),
+    secondaryContainer = AccentBgLight,
+    onSecondaryContainer = TextPrimaryLight,
+    
+    tertiary = StatusGreenLight,
+    onTertiary = Color(0xFFFFFFFF),
+    tertiaryContainer = StatusGreenBgLight,
+    onTertiaryContainer = StatusGreenLight,
+    
+    background = BgPrimaryLight,
+    onBackground = TextPrimaryLight,
+    
+    surface = SurfacePrimaryLight,
+    onSurface = TextPrimaryLight,
+    surfaceVariant = SurfaceAltLight,
+    onSurfaceVariant = TextMutedLight,
+    
+    surfaceContainerLowest = BgPrimaryLight,
+    surfaceContainerLow = SurfacePrimaryLight,
+    surfaceContainer = SurfacePrimaryLight,
+    surfaceContainerHigh = SurfaceAltLight,
+    surfaceContainerHighest = BorderColorLight,
+    
+    error = StatusRedLight,
+    onError = Color(0xFFFFFFFF),
+    errorContainer = StatusRedBgLight,
+    onErrorContainer = StatusRedLight,
+    
+    outline = BorderColorLight,
+    outlineVariant = TextDimLight
 )
 
 @Composable
@@ -88,14 +105,7 @@ fun TVLinkTheme(
         ThemeMode.SYSTEM -> systemDark
     }
 
-    // On Android 12+ use Material You wallpaper-derived colors,
-    // falling back to our hand-crafted purple scheme on older devices.
-    val colorScheme = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-        val context = LocalContext.current
-        if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-    } else {
-        if (darkTheme) TVLinkDarkScheme else TVLinkLightScheme
-    }
+    val colorScheme = if (darkTheme) TVLinkDarkScheme else TVLinkLightScheme
 
     val view = LocalView.current
     if (!view.isInEditMode) {

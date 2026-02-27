@@ -2,47 +2,35 @@ package com.tvlink.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Seed
-val Seed = Color(0xFF6750A4)
-
-// Core Purple
-val PrimaryPurple = Color(0xFFD0BCFF)
-val PrimaryPurpleLight = Color(0xFF6750A4)
-
-// --- Dark Theme Colors ---
-val SurfaceBaseDark = Color(0xFF141218)
-val SurfaceContainerDark = Color(0xFF211F26)
-val SurfaceContainerHighDark = Color(0xFF2B2930)
-val SurfaceContainerHighestDark = Color(0xFF332D41)
-val SurfaceVariantDark = Color(0xFF4A4458)
-
-val PrimaryContainerDark = Color(0xFF4F378B)
-val OnPrimaryContainerDark = Color(0xFFEADDFF)
-val OnPrimaryDark = Color(0xFF381E72)
-
-val OnSurfaceDark = Color(0xFFE6E0E9)
-val OnSurfaceVariantDark = Color(0xFFCAC4D0)
-
-val ErrorContainerDark = Color(0xFF601410)
-val OnErrorContainerDark = Color(0xFFF2B8B5)
-
-val InfoBlueDark = Color(0xFFA8C7FA)
+val BgPrimary     = Color(0xFF0D0B0A)
+val SurfacePrimary = Color(0xFF1A1614)
+val SurfaceAlt    = Color(0xFF221D1B)
+val BorderColor   = Color(0xFF2E2622)
+val AccentPrimary = Color(0xFFC4856A)
+val AccentDim     = Color(0xFF8B5E4A)
+val AccentBg      = Color(0xFF2A1E19)
+val AccentBgMid   = Color(0xFF3D2820)
+val TextPrimary   = Color(0xFFF0E8E4)
+val TextMuted     = Color(0xFF8A7B75)
+val TextDim       = Color(0xFF5A4E49)
+val StatusRed     = Color(0xFFC44A4A)
+val StatusRedBg   = Color(0xFF2A1515)
+val StatusGreen   = Color(0xFF4AC47A)
+val StatusGreenBg = Color(0xFF152A1E)
 
 // --- Light Theme Colors ---
-val SurfaceBaseLight = Color(0xFFFEF7FF)
-val SurfaceContainerLight = Color(0xFFF3EDF7)
-val SurfaceContainerHighLight = Color(0xFFECE6F0)
-val SurfaceContainerHighestLight = Color(0xFFE6E0E9)
-val SurfaceVariantLight = Color(0xFFE7E0EC)
-
-val PrimaryContainerLight = Color(0xFFEADDFF)
-val OnPrimaryContainerLight = Color(0xFF21005D)
-val OnPrimaryLight = Color(0xFFFFFFFF)
-
-val OnSurfaceLight = Color(0xFF1D1B20)
-val OnSurfaceVariantLight = Color(0xFF49454F)
-
-val ErrorContainerLight = Color(0xFFF9DEDC)
-val OnErrorContainerLight = Color(0xFF410E0B)
-
-val InfoBlueLight = Color(0xFF0A56D1)
+val BgPrimaryLight     = Color(0xFFFCFAF9)
+val SurfacePrimaryLight = Color(0xFFF5EFEB)
+val SurfaceAltLight    = Color(0xFFEBE3DE)
+val BorderColorLight   = Color(0xFFD6C8C0)
+val AccentPrimaryLight = Color(0xFFAD5E40)
+val AccentDimLight     = Color(0xFF824B35)
+val AccentBgLight      = Color(0xFFF5E3DC)
+val AccentBgMidLight   = Color(0xFFE8D0C5)
+val TextPrimaryLight   = Color(0xFF1E1512)
+val TextMutedLight     = Color(0xFF6B5850)
+val TextDimLight       = Color(0xFFA19289)
+val StatusRedLight     = Color(0xFFB33030)
+val StatusRedBgLight   = Color(0xFFFAEBEB)
+val StatusGreenLight   = Color(0xFF2E8C4D)
+val StatusGreenBgLight = Color(0xFFE7F3EB)
