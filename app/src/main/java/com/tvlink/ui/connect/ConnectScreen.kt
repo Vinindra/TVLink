@@ -31,7 +31,9 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -541,7 +543,7 @@ private fun ConnectedState(
     Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text("QUICK TOOLS", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary, letterSpacing = 0.08.sp, modifier = Modifier.padding(horizontal = 4.dp))
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Max), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 ToolCard(Modifier.weight(1f), Icons.Outlined.Gamepad, "Remote", onClick = onRemote)
                 ToolCard(Modifier.weight(1f), Icons.Outlined.Folder, "Files", onClick = onFiles)
                 ToolCard(
@@ -552,7 +554,7 @@ private fun ConnectedState(
                     isDestructive = isRecording
                 )
             }
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Max), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 ToolCard(Modifier.weight(1f), Icons.Outlined.CameraAlt, "Screenshot", onClick = onScreenshot)
                 ToolCard(Modifier.weight(1f), Icons.Outlined.DarkMode, "Screen\nSaver", onClick = onScreensaver)
                 ToolCard(
@@ -566,7 +568,7 @@ private fun ConnectedState(
 
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text("POWER & MAINTENANCE", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary, letterSpacing = 0.08.sp, modifier = Modifier.padding(horizontal = 4.dp))
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Max), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 ToolCard(Modifier.weight(1f), Icons.Outlined.CleaningServices, "Clear\nCache", onClick = { onQuickCommand("pm trim-caches 999999999999999") })
                 ToolCard(Modifier.weight(1f), Icons.Outlined.NightsStay, "Sleep", onClick = { onQuickCommand("input keyevent 26") })
                 ToolCard(Modifier.weight(1f), Icons.Outlined.RestartAlt, "Reboot", onClick = { onQuickCommand("reboot") })
@@ -737,6 +739,7 @@ private fun ToolCard(
 
     Box(
         modifier = modifier
+            .fillMaxHeight()
             .scale(scale)
             .clip(RoundedCornerShape(16.dp))
             .background(bgColor)
